@@ -1,0 +1,52 @@
+[package]
+name = "pi-coin-hyper-stablecoin"
+version = "0.1.0"
+edition = "2021"
+description = "Ultimate Hyper-Tech Stablecoin on Stellar Soroban: Pi Coin with $314,159 peg, exclusive to Mining/Rewards/P2P sources, quantum security, AI oracles, and global payment recognition."
+license = "MIT"
+authors = ["KOSASIH"]
+
+[lib]
+name = "pi_coin"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "deploy"
+path = "deploy.rs"
+
+[dependencies]
+soroban-sdk = { version = "0.9", features = ["testutils"] }
+# Hyper-tech: Quantum-resistant crypto primitives
+soroban-auth = "0.9"
+# AI simulation helpers
+rand = "0.8"  # For simulated randomness in AI predictions
+
+[dev-dependencies]
+soroban-sdk = { version = "0.9", features = ["testutils"] }
+
+[features]
+default = []
+test = ["soroban-sdk/testutils"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+# Hyper-tech: Custom build script for provenance validation
+[build-dependencies]
+# None yet, but can add for advanced builds
+
+# Metadata for global recognition
+[package.metadata]
+stellar-network = "testnet"
+pi-peg-exclusive-sources = ["Mining", "Rewards", "P2P"]  # Only these for $314,159 peg
+quantum-security = true
+ai-enhanced = true
+global-payment-ready = true
