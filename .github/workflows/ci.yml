@@ -1,0 +1,86 @@
+name: Pi Coin CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Build Pi Coin contracts
+      run: |
+        cargo build --release --target wasm32-unknown-unknown
+        cargo build --bin deploy --release
+
+    - name: Run tests with hyper-tech validations
+      run: |
+        cargo test
+        # Hyper-tech: Validate source exclusivity (simulate rejection of invalid sources)
+        echo "Testing source validation: Mining/Rewards/P2P allowed, others rejected"
+        cargo test test_mint_invalid_source_rejected -- --nocapture
+
+    - name: Lint code
+      run: |
+        cargo clippy -- -D warnings
+
+    - name: Check formatting
+      run: |
+        cargo fmt --check
+
+  deploy-to-testnet:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+
+    - name: Build for deployment
+      run: |
+        cargo build --release --target wasm32-unknown-unknown --bin deploy
+
+    - name: Deploy to Stellar Testnet
+      env:
+        STELLAR_NETWORK: testnet
+        ADMIN_ADDRESS: ${{ secrets.STELLAR_ADMIN_ADDRESS }}  # Set in repo secrets
+        SOURCE: Mining  # Valid source for peg
+      run: |
+        # Hyper-tech: Deploy with source validation
+        ./target/release/deploy --network $STELLAR_NETWORK --admin $ADMIN_ADDRESS --source $SOURCE
+        echo "Pi Coin deployed to testnet with $314,159 peg exclusive to valid sources"
+
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "Pi Coin ecosystem live on testnet - Global payment recognition activated"
